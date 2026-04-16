@@ -1,0 +1,4 @@
+Bootstrap: docker
+From: patriciatran111/snakemake-apptainer:14APRIL2026_V2
+
+%post

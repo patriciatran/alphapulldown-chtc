@@ -1,0 +1,26 @@
+#container_image = docker://patriciatran111/snakemake-apptainer:14APRIL2026_V2
+container_image = file:///staging/ptran5/snakemake-apptainer_14APRIL2026_V2.sif
+
+executable = run_afpulldown.sh
+
+#notify_user = ptran5@wisc.edu
+#notification = Always
+
+log = logs/afp_$(cluster).log
+error = logs/afp_$(cluster).err
+output = logs/afp_$(cluster).out
+
+transfer_input_files = config.yaml
+# I don't need the output for this test...
+transfer_output_files = ""
+#transfer_output_files = AlphaPulldownSnakemake/output_afp.tar.gz
+#transfer_output_remaps = "AlphaPulldownSnakemake/output_afp.tar.gz=file:///staging/ptran5/AlphaPulldown_outputafp.tar.gz"
+
+requirements = (HasCHTCStaging == true) && (OpSysMajorVer > 7) && (HasChtcProjects == true) && (HasAlphafold3 == true)
+
+# Make sure you request enough disk for the container image in addition to your other input files
+request_cpus = 8
+request_memory = 64GB
+request_disk = 50GB      
+
+queue
