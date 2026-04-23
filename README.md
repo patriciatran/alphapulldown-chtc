@@ -1,38 +1,64 @@
-# alphapulldown-chtc
+# Alphapulldown on CHTC
 
-Current tests on how to run alphapulldown (https://github.com/KosinskiLab/AlphaPulldown) on CHTC (https://chtc.cs.wisc.edu/)
+Example code on how to run Alphapulldown on CHTC
 
-**Difficulties**:
-- Initially, I tried to create an container that has snakemake and apptainer, but the main issue was that apptainer did not have unprivileged access to all files it needed.
+**Current status**: Testing this in a non-interactive job.
 
-**Completed**:
-- Created a Docker container that has a snakemake install and an unprivileged version of apptainer (https://apptainer.org/docs/admin/1.4/installation.html#install-unprivileged-from-pre-built-binaries).
-- The current version is pushed on docker sub under `docker://patriciatran111/snakemake-apptainer:14APRIL2026_V2`
+# Files
 
-**Overall strategy**:
-- Build the Docker image on my laptop (Mac) (do remember to specify the build to it works on linux:
+## Submit file
+
+
+`.sub`
+
+the submit file should have a requirement for the af3 database
+the submit file should also request a node with GPU
+
+## Executable files
+
+`.sh` files
+
+the main .sh file installs pixi directly on the matched node
+it also sets up a pixi project and install the required dependencies
+those dependencies are:
+- snakemake
+- apptainer
+- and all the ones listed in the conda yml file of alphapulldown
+    - the packages are added via `pixi add` instead
+
+Because HTcondor runs things non-interactively, using `pixi shell` will throw an error.
+Therefore, the script should run any code as `pixi run bash [bash script]`, where the bash script contains the actual `snakedeploy` and `snakemake` commands.
+
+`afp.sh`
+- things worth mentioning are the extra apptainer parameters passed onto snakemake using :
 ```
-docker buildx build --platform linux/amd64 -t snakemake-apptainer:latest --load .
+  --singularity-args "--nv --unsquash --pid --ipc --env PREPEND_PATH=/opt/venv/bin:/opt/conda/bin -B $(pwd):$(pwd) --cwd $(pwd)"
 ```
-- After testing that container, tag + push it to dockerhub.
 
-- Log into the CHTC system and modify my .sh and .sub file to point to updated containers.
+Specifically, we request that apptainer uses a sandbox environment, and we need to pass on some specific paths to snakemake using `PREPEND_PATH`. 
 
-- Submit file:
-    - will use the pushed docker image in the `container_image` line (preferred)
-    - use a Docker image converted to Apptainer image
+## Config files
 
-- Sh file will container the command to run snakemake as listed in the AlphaPulldown documentation
-    - Important to include extra options: 
-    ```
-    snakemake --profile config/profiles/desktop \
-	--cores 8 \
-	--use-singularity \
-	--singularity-args "--unsquash --pid --ipc"
-    ```
+Use the config file template from the AlphaPulldown repository.
+To run on CHTC, make sure to change the following variables:
 
-- Identify any errors in the snakemake run command
+```
+databases_directory: /alphafold3
+# Weights should be requested by each user ahead of time.
+backend_weights_directory: /path/in/staging/netid/af3.bin.zst
+# Pick alphafold3 
+structure_inference_arguments:
+  --fold_backend: alphafold3
+```
 
-**Current issue**:
+the config file should be prepared ahead of time, and passed onto the job as part of the `transfer_input_files` line of the submit file.
 
-Trying to figure out why Apptainer executes properly on its own, but not when "initiated" by snakemake.
+
+# Other options tested that did not work (or that caused other issues)
+
+Before landing on using `pixi`, we also attempted:
+
+- making a docker image containing all the deps
+- making an apptainer image containing all the deps
+
+Typical errors included mismatches in environment variables, which ones were passed onto other programs, etc.

@@ -1,0 +1,20 @@
+executable = run_afpulldown_pixi2.sh
+
+log = logs/afp_$(cluster)_$(process).log
+error = logs/afp_$(cluster)_$(process).err
+output = logs/afp_$(cluster)_$(process).out
+
+transfer_input_files = config.yaml, afp.sh
+transfer_output_files = "afp_pixi_env.tar.gz"
+transfer_output_remaps = "afp_pixi_env.tar.gz=file:///staging/ptran5/afp_pixi_env_$(cluster)_$(process).tar.gz"
+
+requirements = (HasCHTCStaging == true) && (OpSysMajorVer > 7) && (HasAlphafold3 == true)
+
+request_cpus = 8
+request_memory = 64GB
+request_disk = 50GB      
+
+request_gpus = 1
+#+WantGPULab = true
+
+queue
